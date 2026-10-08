@@ -3,10 +3,10 @@
   "image": "node:24",
   "runArgs": ["--name", "riflessi-auto-dev"],
 
-  // На хості: стартує Postgres або створює його при першому запуску
+  // On host: Postgres starts of create on first run
   "initializeCommand": "podman start riflessi-db || podman run -d --name riflessi-db -p 5432:5432 -e POSTGRES_USER=dev -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=riflessi -v riflessi_pgdata:/var/lib/postgresql/data docker.io/library/postgres:17",
 
-  // Одноразово при створенні контейнера: pnpm + залежності (якщо вже є lock-файл)
+  // Once only when the container is created: pnpm + dependencies (if lock file already exists)
   "postCreateCommand": "corepack enable && corepack prepare pnpm@latest --activate && if [ -f pnpm-lock.yaml ]; then pnpm install; fi",
 
   "containerEnv": {

@@ -1,3 +1,7 @@
+.next
+dist
+.env
+.env*.local
 # Logs
 logs
 *.log
