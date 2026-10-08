@@ -1,0 +1,38 @@
+{
+  "name": "riflessi-auto",
+  "image": "node:24",
+  "runArgs": ["--name", "riflessi-auto-dev"],
+
+  // На хості: стартує Postgres або створює його при першому запуску
+  "initializeCommand": "podman start riflessi-db || podman run -d --name riflessi-db -p 5432:5432 -e POSTGRES_USER=dev -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=riflessi -v riflessi_pgdata:/var/lib/postgresql/data docker.io/library/postgres:17",
+
+  // Одноразово при створенні контейнера: pnpm + залежності (якщо вже є lock-файл)
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@latest --activate && if [ -f pnpm-lock.yaml ]; then pnpm install; fi",
+
+  "containerEnv": {
+    "DATABASE_URL": "postgresql://dev:dev@host.containers.internal:5432/riflessi"
+  },
+
+  "forwardPorts": [3000, 3001],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "Prisma.prisma"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "[prisma]": {
+          "editor.defaultFormatter": "Prisma.prisma"
+        }
+      }
+    }
+  }
+}
