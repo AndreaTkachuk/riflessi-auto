@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Utenti ----------
+
+enum Role {
+  ADMIN
+  EDITOR
+  DEALER
+  USER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ---------- Catalogo ----------
+
+enum FuelType {
+  PETROL
+  DIESEL
+  LPG
+  CNG
+  HYBRID
+  PLUG_IN_HYBRID
+  ELECTRIC
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum BodyType {
+  HATCHBACK
+  SEDAN
+  WAGON
+  SUV
+  COUPE
+  CONVERTIBLE
+  MPV
+  PICKUP
+  VAN
+}
+
+enum EmissionClass {
+  EURO_4
+  EURO_5
+  EURO_6
+  EURO_6D
+  EURO_7
+}
+
+model Brand {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
+  country   String?
+  logoUrl   String?
+  models    CarModel[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CarModel {
+  id        String       @id @default(cuid())
+  brandId   String
+  brand     Brand        @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  name      String
+  slug      String
+  bodyType  BodyType?
+  versions  CarVersion[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([brandId, slug])
+}
+
+model CarVersion {
+  id            String         @id @default(cuid())
+  modelId       String
+  model         CarModel       @relation(fields: [modelId], references: [id], onDelete: Restrict)
+  name          String
+  slug          String
+  yearFrom      Int
+  yearTo        Int?
+  fuelType      FuelType
+  transmission  Transmission
+  engineCc      Int?
+  powerKw       Int?
+  powerHp       Int?
+  consumption   Decimal?       @db.Decimal(4, 1) // l/100km (o kWh/100km per elettriche)
+  co2Gkm        Int?
+  emissionClass EmissionClass?
+  doors         Int?
+  seats         Int?
+  priceNewEur   Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([modelId, slug])
+}

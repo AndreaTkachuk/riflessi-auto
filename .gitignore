@@ -2,6 +2,7 @@
 dist
 .env
 .env*.local
+apps/api/src/generated
 # Logs
 logs
 *.log
