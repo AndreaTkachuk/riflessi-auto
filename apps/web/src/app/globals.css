@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Тема "dark" вмикається класом .dark на <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------- Colors: light theme ---------- */

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SiteHeader } from "@/components/site-header";
+import { SiteHeader } from "@/components/header/site-header";
 
 interface Brand {
   id: string;
@@ -25,7 +25,6 @@ export default async function Home() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Кольорові "сяйва" на фоні */}
       <div
         aria-hidden
         className="pointer-events-none absolute -left-32 -top-56 size-[620px] animate-drift rounded-full motion-reduce:animate-none"
