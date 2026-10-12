@@ -59,7 +59,7 @@ jobs:
             --image "$IMAGE" \
             --region ${{ vars.GCP_REGION }} \
             --service-account riflessi-api@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
-            --set-secrets DATABASE_URL=database-url:latest \
+            --set-secrets DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest \
             --allow-unauthenticated \
             --min-instances 0 \
             --max-instances 2 \

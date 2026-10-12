@@ -9,7 +9,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { AuthService } from './auth.service.js';
+import { AuthService, type PublicUser } from './auth.service.js';
+import { CurrentUser } from './decorators/current-user.decorator.js';
+import { Public } from './decorators/public.decorator.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 
@@ -20,6 +22,7 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  @Public()
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -30,6 +33,7 @@ export class AuthController {
     return user;
   }
 
+  @Public()
   @Post('login')
   @HttpCode(200)
   async login(
@@ -41,6 +45,7 @@ export class AuthController {
     return user;
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(204)
   logout(@Res({ passthrough: true }) res: Response) {
