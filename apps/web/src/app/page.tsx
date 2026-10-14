@@ -33,11 +33,11 @@ export default async function Home() {
           CATALOGO IN COSTRUZIONE
         </span>
 
-        {/* <h1 className="max-w-4xl font-display text-5xl font-extrabold leading-none tracking-tight sm:text-7xl">
+        <h1 className="max-w-4xl font-display text-5xl font-extrabold leading-none tracking-tight sm:text-7xl">
           Scopri le <span className="text-aura">novità</span>.
           <br />
           Confrontale in un attimo.
-        </h1> */}
+        </h1>
 
         <p className="max-w-xl text-lg leading-relaxed text-muted">
           Listini, versioni e schede tecniche di ogni auto nuova in Italia.
