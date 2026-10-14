@@ -67,6 +67,12 @@ home page. The project is a portfolio piece today and is designed to be monetize
 - Prisma-side defaults: `@default(cuid())` and `@updatedAt` are filled by Prisma, **not** by the DB.
   Raw SQL inserts must provide `id`, `createdAt`, `updatedAt` manually.
 - New native deps need `pnpm approve-builds` (pnpm 12 blocks build scripts; approvals live in `pnpm-workspace.yaml`).
+- **E2E tests** (`apps/api/test/`): `vitest.config.e2e.ts` rewrites `DATABASE_URL` to database `riflessi_test`
+  on the same server (`test/test-db.ts`, with a safety assert); `global-setup.ts` runs `prisma migrate deploy`;
+  `resetDb()` truncates all tables before each test; `loginAs(app, role)` returns a supertest agent with cookie.
+  The app is configured by `setupApp()` (`src/app.setup.ts`), shared with `main.ts` — add global config there.
+- **Update DTOs use `PartialType(CreateDto, { skipNullProperties: false })`**: otherwise `{ name: null }` skips
+  validation and Prisma fails with 500. Fields `@IsOptional()` in the create DTO can still be cleared with null.
 - **Vitest needs no SWC**: Vite 8 compiles TS with Oxc, which emits decorator metadata, so Nest DI by type
   works in `Test.createTestingModule`. Unit tests: `*.spec.ts` next to the code (excluded from `nest build`
   and from shared's `tsc`). E2E tests: `apps/api/test/*.e2e-spec.ts`.
@@ -100,12 +106,14 @@ riflessi-auto/
     ├── api/                            # @riflessi/api — NestJS
     │   ├── Dockerfile                  # build context = repo root
     │   ├── prisma7.config.ts
+    │   ├── test/                       # e2e: helpers.ts, test-db.ts, global-setup.ts, *.e2e-spec.ts
     │   ├── prisma/
     │   │   ├── schema.prisma
     │   │   └── migrations/             # committed; applied to Neon by CI
     │   ├── .env                        # JWT_SECRET (gitignored)
     │   └── src/
-    │       ├── main.ts                 # prefix /api, cookieParser, ValidationPipe, PrismaExceptionFilter
+    │       ├── main.ts                 # NestFactory + setupApp() + listen
+    │       ├── app.setup.ts            # prefix /api, cookieParser, ValidationPipe, PrismaExceptionFilter
     │       ├── app.module.ts           # Config, Prisma, Auth, Catalog modules
     │       ├── app.controller.ts       # only GET /api (hello)
     │       ├── generated/prisma/       # generated, gitignored
@@ -183,6 +191,7 @@ pnpm build                  # shared build + prisma generate + nest build  (alwa
 pnpm lint                   # oxlint --deny-warnings: warnings fail CI
 pnpm typecheck              # tsc --noEmit (includes test/)
 pnpm test                   # vitest unit tests (also in packages/shared: pnpm --filter @riflessi/shared test)
+pnpm test:e2e               # e2e against DB riflessi_test (auto-created + migrated; dev DB never touched)
 pnpm prisma migrate dev --name <name>   # new migration (local only)
 pnpm prisma studio
 echo "SQL;" | pnpm prisma db execute --stdin
@@ -298,9 +307,10 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 - Runs on every pull request and on push to `main`. Two parallel jobs (their names are the required
   status checks in branch protection — don't rename without updating the rule):
   - **`api`**: install → build (shared + prisma generate + nest) → lint → typecheck → unit tests (shared, api).
+  - **`e2e`**: `postgres:17` service container → build → `test:e2e` (migrations applied by global setup).
   - **`web`**: install → lint → build (shared + next build, includes type checking).
 - Dummy env in CI: `DATABASE_URL` (prisma generate only), `API_URL` (rewrites only).
-- Before pushing, run locally what CI runs: `pnpm build && pnpm lint && pnpm typecheck && pnpm test` (api),
+- Before pushing, run locally what CI runs: `pnpm build && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e` (api),
   `pnpm lint && pnpm build` (web).
 
 ### Deployment (automatic on push/merge to `main`)
@@ -363,9 +373,8 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 1. ✅ CI workflow without real tests + branch protection on `main`.
 2. ✅ Unit tests: `slugify` (shared, `it.each` table) and `AuthGuard` (real Reflector + decorators on fake
    controllers, mocked AuthService). No SWC needed (see gotchas). Removed `vite-tsconfig-paths` (no TS paths).
-3. E2E API tests with real Postgres: local DB `riflessi_test`, in CI a `postgres:17` service container +
-   `prisma migrate deploy`; supertest scenarios for auth and brands (401/403/201/409/404).
-   Fix the stale generated `test/app.e2e-spec.ts`.
+3. ✅ E2E API tests with real Postgres (27 tests: app, auth, brands), CI job `e2e` with a service container.
+   Found and fixed: `PATCH /admin/brands` with `{ name: null }` returned 500 → now 400.
 4. `deploy-api.yml` runs only after CI is green.
 5. Then models API — written together with its e2e tests.
 
