@@ -26,7 +26,12 @@ export class BrandsService {
 
   create(dto: CreateBrandDto) {
     return this.prisma.brand.create({
-      data: { ...dto, slug: dto.slug ?? slugify(dto.name) },
+      data: {
+        name: dto.name,
+        slug: dto.slug ?? slugify(dto.name),
+        country: dto.country,
+        logoUrl: dto.logoUrl,
+      },
     });
   }
 
