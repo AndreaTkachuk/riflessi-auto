@@ -1,27 +1,10 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/header/site-header";
-
-interface Brand {
-  id: string;
-  name: string;
-  slug: string;
-  _count: { models: number };
-}
-
-async function getBrands(): Promise<Brand[]> {
-  try {
-    const res = await fetch(`${process.env.API_URL}/api/brands`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
-    return [];
-  }
-}
+import { serverFetch } from "@/lib/server-api";
+import type { Brand } from "@/lib/types";
 
 export default async function Home() {
-  const brands = await getBrands();
+  const brands = (await serverFetch<Brand[]>("/api/brands")) ?? [];
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -50,11 +33,11 @@ export default async function Home() {
           CATALOGO IN COSTRUZIONE
         </span>
 
-        <h1 className="max-w-4xl font-display text-5xl font-extrabold leading-none tracking-tight sm:text-7xl">
+        {/* <h1 className="max-w-4xl font-display text-5xl font-extrabold leading-none tracking-tight sm:text-7xl">
           Scopri le <span className="text-aura">novità</span>.
           <br />
           Confrontale in un attimo.
-        </h1>
+        </h1> */}
 
         <p className="max-w-xl text-lg leading-relaxed text-muted">
           Listini, versioni e schede tecniche di ogni auto nuova in Italia.
