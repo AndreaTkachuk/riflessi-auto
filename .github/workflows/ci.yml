@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same branch/PR cancels the run that is still in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: api
+    runs-on: ubuntu-24.04
+    env:
+      # prisma generate reads DATABASE_URL from prisma7.config.ts; no DB is contacted during build.
+      DATABASE_URL: postgresql://build:build@localhost:5432/build
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile --filter @riflessi/api...
+
+      # Builds @riflessi/shared, generates the Prisma client, then nest build.
+      - name: Build
+        run: pnpm --filter @riflessi/api build
+
+      - name: Lint
+        run: pnpm --filter @riflessi/api lint
+
+      # Covers test/ too, which nest build skips.
+      - name: Typecheck
+        run: pnpm --filter @riflessi/api typecheck
+
+      - name: Unit tests
+        run: pnpm --filter @riflessi/api test
+
+  web:
+    name: web
+    runs-on: ubuntu-24.04
+    env:
+      # Used only by the rewrites in next.config.ts; pages are dynamic, nothing is fetched at build time.
+      API_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile --filter @riflessi/web...
+
+      - name: Lint
+        run: pnpm --filter @riflessi/web lint
+
+      # Builds @riflessi/shared, then next build (includes type checking).
+      - name: Build
+        run: pnpm --filter @riflessi/web build

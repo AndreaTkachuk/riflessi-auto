@@ -29,7 +29,7 @@ home page. The project is a portfolio piece today and is designed to be monetize
   3. Give **complete file contents** (or say exactly which lines to change).
   4. End with a **✅ check** (build command, curl tests with expected status codes, or browser checks).
      Andrii **tests the functionality himself after every step** — always give him concrete test scenarios.
-  5. Then the commit command.
+  5. Then the commit command (on a feature branch — see "Git workflow" below).
 - **Never assume files exist.** Before writing code that touches existing files, read them first
   (`ls`, open the file). Earlier mistakes came from instructions that assumed a state that wasn't there.
 - Don't run ahead to future steps. Finish and verify the current one first.
@@ -81,6 +81,7 @@ home page. The project is a portfolio piece today and is designed to be monetize
 ```
 riflessi-auto/
 ├── .devcontainer/devcontainer.json     # node:24 image, Podman, starts Postgres on host
+├── .github/workflows/ci.yml            # lint, typecheck, tests, build on every PR / push to main
 ├── .github/workflows/deploy-api.yml    # CI/CD for the backend → Cloud Run
 ├── .dockerignore
 ├── CLAUDE.md
@@ -159,6 +160,13 @@ riflessi-auto/
 - Inside the devcontainer `DATABASE_URL=postgresql://dev:dev@host.containers.internal:5432/riflessi` (containerEnv).
 - **`podman` is NOT available inside the devcontainer** — build/run images in the Ubuntu host terminal.
 
+### Git workflow (branches + Pull Requests)
+
+- **Never commit directly to `main`.** One branch per step: `feat/models-api`, `fix/...`, `chore/...`, `ci/...`.
+- `git checkout main && git pull` → `git checkout -b feat/x` → commits → `git push -u origin feat/x`
+  → open a PR on GitHub → CI must be green → merge → `git checkout main && git pull`, delete the branch.
+- `main` is protected: merge only via PR with green `api` and `web` checks. Merge into `main` = deploy.
+
 ### Commands
 
 ```bash
@@ -167,7 +175,10 @@ pnpm dev                    # web (3000) + api (3001) in parallel
 pnpm dev:web | pnpm dev:api
 
 # apps/api
-pnpm build                  # prisma generate && nest build  (always run before pushing)
+pnpm build                  # shared build + prisma generate + nest build  (always run before pushing)
+pnpm lint                   # oxlint --deny-warnings: warnings fail CI
+pnpm typecheck              # tsc --noEmit (includes test/)
+pnpm test                   # vitest unit tests
 pnpm prisma migrate dev --name <name>   # new migration (local only)
 pnpm prisma studio
 echo "SQL;" | pnpm prisma db execute --stdin
@@ -276,7 +287,19 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 
 ---
 
-## 9. Deployment (all automatic on push to `main`)
+## 9. CI and deployment
+
+### CI — `.github/workflows/ci.yml`
+
+- Runs on every pull request and on push to `main`. Two parallel jobs (their names are the required
+  status checks in branch protection — don't rename without updating the rule):
+  - **`api`**: install → build (shared + prisma generate + nest) → lint → typecheck → unit tests.
+  - **`web`**: install → lint → build (shared + next build, includes type checking).
+- Dummy env in CI: `DATABASE_URL` (prisma generate only), `API_URL` (rewrites only).
+- Before pushing, run locally what CI runs: `pnpm build && pnpm lint && pnpm typecheck && pnpm test` (api),
+  `pnpm lint && pnpm build` (web).
+
+### Deployment (automatic on push/merge to `main`)
 
 ### Frontend — Vercel
 
@@ -328,6 +351,19 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
    `/login`, protected `/admin` layout, `/admin/marche` (create/edit/delete brands).
 8. `packages/shared` (`@riflessi/shared`): enums, API response types, `slugify`; enum drift check in API.
    `serverFetch` with `{ auth }` (no request without cookie), `getCurrentUser` with React `cache()`.
+9. CI workflow (`ci.yml`): lint (warnings = errors), typecheck, unit tests, build for api and web.
+   `GET /auth/me` now uses `@CurrentUser()` (no second JWT check / DB query). Branch + PR workflow.
+
+### In progress 🚧 — tests & CI (plan agreed with Andrii)
+
+1. ✅ CI workflow without real tests + branch protection on `main`.
+2. Unit tests: Vitest + SWC (`unplugin-swc`, esbuild has no `emitDecoratorMetadata` → Nest DI breaks),
+   tests for `slugify` (shared) and `AuthGuard` (mocked Reflector/AuthService).
+3. E2E API tests with real Postgres: local DB `riflessi_test`, in CI a `postgres:17` service container +
+   `prisma migrate deploy`; supertest scenarios for auth and brands (401/403/201/409/404).
+   Fix the stale generated `test/app.e2e-spec.ts`.
+4. `deploy-api.yml` runs only after CI is green.
+5. Then models API — written together with its e2e tests.
 
 ### NOT done yet ⏳ (next steps, in this order)
 

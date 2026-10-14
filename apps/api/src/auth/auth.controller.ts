@@ -4,11 +4,9 @@ import {
   Get,
   HttpCode,
   Post,
-  Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { AuthService, type PublicUser } from './auth.service.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { Public } from './decorators/public.decorator.js';
@@ -52,13 +50,9 @@ export class AuthController {
     res.clearCookie(AUTH_COOKIE, { path: '/' });
   }
 
+  // The global AuthGuard has already verified the cookie and loaded the user.
   @Get('me')
-  async me(@Req() req: Request) {
-    const token = req.cookies?.[AUTH_COOKIE];
-    if (!token) throw new UnauthorizedException();
-    const payload = await this.auth.verifyToken(token);
-    const user = await this.auth.findPublicUser(payload.sub);
-    if (!user) throw new UnauthorizedException();
+  me(@CurrentUser() user: PublicUser) {
     return user;
   }
 
