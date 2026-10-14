@@ -9,7 +9,6 @@ export class BrandsService {
   constructor(private readonly prisma: PrismaService) {}
 
   findAll() {
-    const x = 1;
     return this.prisma.brand.findMany({
       orderBy: { name: 'asc' },
       include: { _count: { select: { models: true } } },
