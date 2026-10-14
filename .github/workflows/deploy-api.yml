@@ -1,22 +1,18 @@
 name: Deploy API
 
+# Not triggered by push anymore: ci.yml calls this workflow after lint, tests and e2e are green
+# (only on main, only when the API is affected). workflow_dispatch = manual redeploy from the Actions tab.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/api/**"
-      - "packages/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/deploy-api.yml"
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: deploy-api
-  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-24.04
+    # Never run two deploys at once, and never cancel one halfway (migrations!).
+    concurrency:
+      group: deploy-api
+      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write

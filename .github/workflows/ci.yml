@@ -6,9 +6,10 @@ on:
     branches: [main]
 
 # A new push to the same branch/PR cancels the run that is still in progress.
+# Not on main: a run on main may be deploying, it must finish.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -110,3 +111,39 @@ jobs:
       # Builds @riflessi/shared, then next build (includes type checking).
       - name: Build
         run: pnpm --filter @riflessi/web build
+
+  # Did this push to main touch anything the API image is built from?
+  changes:
+    name: changes
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    outputs:
+      api: ${{ steps.diff.outputs.api }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          git diff --name-only "$BEFORE" "$AFTER"
+          if git diff --name-only "$BEFORE" "$AFTER" \
+            | grep -qE '^(apps/api/|packages/|pnpm-lock\.yaml|\.github/workflows/(ci|deploy-api)\.yml)'; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-api:
+    name: deploy-api
+    needs: [changes, api, e2e]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.api == 'true'
+    # The called workflow needs these to log in to GCP (Workload Identity Federation).
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-api.yml
+    secrets: inherit

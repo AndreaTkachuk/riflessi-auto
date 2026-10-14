@@ -176,7 +176,8 @@ riflessi-auto/
 - **Never commit directly to `main`.** Andrii works on the long-lived branch **`dev`**.
 - Commit + push to `dev` → open a PR `dev → main` on GitHub → CI must be green → merge.
 - After a merge, sync `dev` with the merge commit: `git checkout dev && git pull origin main && git push`.
-- `main` is protected (ruleset): merge only via PR with green `api` and `web` checks, no force push.
+- `main` is protected (ruleset): merge only via PR with green `api`, `e2e` and `web` checks, no force push.
+  (`changes` and `deploy-api` run only on `main` — never make them required checks.)
   Merge into `main` = deploy.
 
 ### Commands
@@ -313,7 +314,7 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 - Before pushing, run locally what CI runs: `pnpm build && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e` (api),
   `pnpm lint && pnpm build` (web).
 
-### Deployment (automatic on push/merge to `main`)
+### Deployment (automatic on merge to `main`, after CI is green)
 
 ### Frontend — Vercel
 
@@ -325,7 +326,11 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 
 ### Backend — Google Cloud Run (via GitHub Actions)
 
-- Workflow `.github/workflows/deploy-api.yml`, triggers on `apps/api/**`, `packages/**`, `pnpm-lock.yaml`, the workflow file.
+- `.github/workflows/deploy-api.yml` is a **reusable workflow** (`workflow_call`), not triggered by push.
+  `ci.yml` calls it as job `deploy-api` only when: push to `main` **and** jobs `api` + `e2e` are green **and**
+  job `changes` found changes in `apps/api/`, `packages/`, `pnpm-lock.yaml`, `ci.yml` or `deploy-api.yml`
+  (`git diff` between `github.event.before` and `github.sha`). Manual redeploy: Actions → Deploy API → Run workflow.
+- CI on `main` is never cancelled by a newer push (`cancel-in-progress` only for other branches): it may be deploying.
 - Dockerfile copies `packages/shared`; `pnpm --filter @riflessi/api build` builds shared first.
 - Steps: install → **`prisma migrate deploy`** against Neon (secret `NEON_DIRECT_URL`) → docker build →
   push to Artifact Registry repo `riflessi` (cleanup policy keeps 3 images) → `gcloud run deploy riflessi-api`.
@@ -375,7 +380,7 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
    controllers, mocked AuthService). No SWC needed (see gotchas). Removed `vite-tsconfig-paths` (no TS paths).
 3. ✅ E2E API tests with real Postgres (27 tests: app, auth, brands), CI job `e2e` with a service container.
    Found and fixed: `PATCH /admin/brands` with `{ name: null }` returned 500 → now 400.
-4. `deploy-api.yml` runs only after CI is green.
+4. ✅ `deploy-api.yml` runs only after CI is green (reusable workflow called from `ci.yml`).
 5. Then models API — written together with its e2e tests.
 
 ### NOT done yet ⏳ (next steps, in this order)
