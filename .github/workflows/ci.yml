@@ -42,7 +42,10 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @riflessi/api typecheck
 
-      - name: Unit tests
+      - name: Unit tests (shared)
+        run: pnpm --filter @riflessi/shared test
+
+      - name: Unit tests (api)
         run: pnpm --filter @riflessi/api test
 
   web:
