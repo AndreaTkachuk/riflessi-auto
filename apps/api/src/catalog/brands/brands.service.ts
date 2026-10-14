@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { slugify } from '../../common/slug.js';
+import { slugify } from '@riflessi/shared';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateBrandDto } from './dto/create-brand.dto.js';
 import { UpdateBrandDto } from './dto/update-brand.dto.js';

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/header/site-header";
 import { serverFetch } from "@/lib/server-api";
-import type { Brand } from "@/lib/types";
+import type { Brand } from "@riflessi/shared";
 
 export default async function Home() {
   const brands = (await serverFetch<Brand[]>("/api/brands")) ?? [];

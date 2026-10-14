@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { readApiError } from "@/lib/api-error";
 import { BADGE_LABELS, BODY_TYPE_LABELS, formatMonthYear } from "@/lib/labels";
-import type { Brand, CarModelAdmin } from "@/lib/types";
+import type { Brand, CarModelAdmin } from "@riflessi/shared";
 import { ModelForm } from "./model-form";
 
 type Panel = { mode: "create" } | { mode: "edit"; model: CarModelAdmin } | null;

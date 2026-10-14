@@ -68,6 +68,9 @@ home page. The project is a portfolio piece today and is designed to be monetize
   Raw SQL inserts must provide `id`, `createdAt`, `updatedAt` manually.
 - New native deps need `pnpm approve-builds` (pnpm 12 blocks build scripts; approvals live in `pnpm-workspace.yaml`).
 - Nest 12 CLI generated `ObserveModule` (`@nestjs/observe`) — it was **removed** on purpose. Don't re-add.
+- **`@riflessi/shared` is consumed from `dist/`** — it must be built first. Root `pnpm dev*` scripts and the
+  `build` scripts of api/web do it automatically. While `pnpm dev` runs, `tsc --watch` rebuilds shared, but
+  `nest start --watch` does **not** restart on shared changes — restart `dev:api` after editing shared.
 - Don't overwrite generator config files wholesale (e.g. `next.config.ts`) without reading them first.
 - Two separate databases: **local** (Podman) and **prod** (Neon). Data does not sync.
 
@@ -84,7 +87,11 @@ riflessi-auto/
 ├── package.json                        # root scripts, packageManager pnpm@12.10.1
 ├── pnpm-workspace.yaml                 # workspaces + approved build scripts
 ├── pnpm-lock.yaml                      # the ONLY lockfile
-├── packages/                           # (empty) future: packages/shared (types, slugify)
+├── packages/
+│   └── shared/                         # @riflessi/shared — API contract shared by api + web
+│       ├── package.json                # exports ./dist (built with tsc, ESM)
+│       └── src/                        # enums.ts, auth.ts (CurrentUser), catalog.ts (Brand, CarModelAdmin…),
+│                                       # slug.ts (slugify), index.ts
 └── apps/
     ├── api/                            # @riflessi/api — NestJS
     │   ├── Dockerfile                  # build context = repo root
@@ -101,7 +108,7 @@ riflessi-auto/
     │       ├── prisma/                 # PrismaService (global module)
     │       ├── common/
     │       │   ├── prisma-exception.filter.ts
-    │       │   └── slug.ts
+    │       │   └── shared-enums.check.ts  # compile-time: shared enums === Prisma enums
     │       ├── auth/
     │       │   ├── auth.module.ts      # JwtModule + APP_GUARD
     │       │   ├── auth.controller.ts  # register/login/logout/me
@@ -138,8 +145,6 @@ riflessi-auto/
                 ├── server-api.ts       # serverFetch<T>(path, { auth? })
                 ├── auth.ts             # getCurrentUser() (React cache)
                 ├── labels.ts           # Italian labels for enums, formatMonthYear
-                ├── types.ts            # Brand, CarModelAdmin
-                ├── slug.ts             # copy of backend slugify (to move to packages/shared)
                 └── api-error.ts        # readApiError()
 ```
 
@@ -216,6 +221,15 @@ Server components call the API directly with `process.env.API_URL` via **`server
 - Make a user admin: local `prisma db execute`; prod Neon SQL Editor:
   `UPDATE "User" SET role = 'ADMIN' WHERE email = '...';`
 
+### Shared types (`packages/shared`)
+
+- Holds the **API contract**: enums (as `const` objects + types), response shapes **as JSON** (dates = ISO
+  strings, Decimal = string), `slugify`. Web imports types only from `@riflessi/shared` — never Prisma types.
+- Not in shared: UI labels (stay in `web/lib/labels.ts`, typed `Record<Enum, string>`), DTO classes, Prisma.
+- New Prisma enum ⇒ add it to `shared/src/enums.ts` **and** to `api/src/common/shared-enums.check.ts`.
+- New API response used by web ⇒ add its interface to `shared/src/*.ts`.
+- Relative imports inside shared also end with `.js` (ESM, nodenext).
+
 ### Frontend (Next.js)
 
 - Server components by default; `'use client'` only for interactivity.
@@ -274,7 +288,8 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 
 ### Backend — Google Cloud Run (via GitHub Actions)
 
-- Workflow `.github/workflows/deploy-api.yml`, triggers on `apps/api/**`, `pnpm-lock.yaml`, the workflow file.
+- Workflow `.github/workflows/deploy-api.yml`, triggers on `apps/api/**`, `packages/**`, `pnpm-lock.yaml`, the workflow file.
+- Dockerfile copies `packages/shared`; `pnpm --filter @riflessi/api build` builds shared first.
 - Steps: install → **`prisma migrate deploy`** against Neon (secret `NEON_DIRECT_URL`) → docker build →
   push to Artifact Registry repo `riflessi` (cleanup policy keeps 3 images) → `gcloud run deploy riflessi-api`.
 - Region **europe-west1**, `--min-instances 0 --max-instances 2 --memory 512Mi`, public (`--allow-unauthenticated`).
@@ -311,6 +326,8 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 6. Schema has novità fields on `CarModel` (`description`, `launchedAt`, `badge`).
 7. Web: Aura theme foundation (tokens, fonts, light/dark toggle), header, home with real brands,
    `/login`, protected `/admin` layout, `/admin/marche` (create/edit/delete brands).
+8. `packages/shared` (`@riflessi/shared`): enums, API response types, `slugify`; enum drift check in API.
+   `serverFetch` with `{ auth }` (no request without cookie), `getCurrentUser` with React `cache()`.
 
 ### NOT done yet ⏳ (next steps, in this order)
 
@@ -320,17 +337,15 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
    - public `GET /api/brands/:brandSlug/models/:modelSlug` (model + brand + versions);
    - admin `GET/POST/PATCH/DELETE /api/admin/models` (`brandId` in body; check brand exists → 404 "Marca non trovata";
      `launchedAt` as date string → `Date`, `null` clears; `@IsEnum(BodyType)`, `@IsEnum(ModelBadge)`).
-2. **Web `/admin/modelli`**: add `lib/server-api.ts` (`serverFetch<T>`, forwards cookie; refactor `getCurrentUser`
-   to use it), `lib/labels.ts` (Italian labels for BodyType/ModelBadge, `formatMonthYear` with `timeZone: 'UTC'`),
-   `CarModelAdmin` type, `models-manager.tsx` + `model-form.tsx` (brand select, body type, launch date, badge,
-   description), enable "Modelli" in admin menu.
+2. **Web `/admin/modelli`**: code already written (uncommitted): `modelli/page.tsx`, `models-manager.tsx`,
+   `model-form.tsx`, "Modelli" enabled in admin menu. Needs the models API, then browser test + commit.
 3. **Versions**: API + `/admin/versioni` (specs, prices). Extract shared form UI (inputs, labels, error alert) here.
 4. **Media**: Cloudflare R2 (10 GB free), presigned upload URLs from NestJS, browser uploads directly to R2;
    `Photo` model linked to `CarModel`; brand logos too. Don't hotlink manufacturer images.
 5. **Home novità with real data** + `/confronta` (compare up to 3 versions, highlight best values, "only differences").
 6. Public catalog pages with SEO URLs: `/catalogo/[brand]`, `/catalogo/[brand]/[model]`.
 7. **AI assistant** (after the catalog has data): NestJS endpoint calling an LLM API, suggests versions from DB.
-8. Hardening: `@nestjs/throttler` on login, refresh tokens, `packages/shared` (types + slugify), GitHub Actions
+8. Hardening: `@nestjs/throttler` on login, refresh tokens, GitHub Actions
    lint/typecheck/tests on PRs.
 9. Used-car listings (`Listing` linked to `CarVersion`, status, `featuredUntil`), favorites, dealer profiles.
 10. Monetization: featured listings, dealer subscriptions (Stripe). Before that: partita IVA, GDPR privacy/cookie

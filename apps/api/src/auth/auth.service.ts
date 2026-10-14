@@ -4,11 +4,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { CurrentUser } from '@riflessi/shared';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
-import { Role } from '../generated/prisma/client.js';
 
 export const publicUserSelect = {
   id: true,
@@ -17,12 +17,7 @@ export const publicUserSelect = {
   role: true,
 } as const;
 
-export interface PublicUser {
-  id: string;
-  email: string;
-  name: string | null;
-  role: Role;
-}
+export type PublicUser = CurrentUser;
 
 export interface JwtPayload {
   sub: string;

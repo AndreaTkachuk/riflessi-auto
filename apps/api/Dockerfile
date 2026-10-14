@@ -9,9 +9,11 @@ RUN corepack enable
 #    and dependencies are not reinstalled on every code change
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
+COPY packages/shared/package.json packages/shared/
 RUN pnpm install --frozen-lockfile --filter @riflessi/api...
 
 # 2. Now code and build
+COPY packages/shared packages/shared
 COPY apps/api apps/api
 # Prisma generate reads the config from DATABASE_URL, so we provide a dummy URL only for the build time
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build pnpm --filter @riflessi/api build

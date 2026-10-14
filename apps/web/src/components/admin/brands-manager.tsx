@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { readApiError } from "@/lib/api-error";
-import type { Brand } from "@/lib/types";
+import type { Brand } from "@riflessi/shared";
 import { BrandForm } from "./brand-form";
 
 type Panel = { mode: "create" } | { mode: "edit"; brand: Brand } | null;

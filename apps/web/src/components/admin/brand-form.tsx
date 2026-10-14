@@ -2,8 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { readApiError } from "@/lib/api-error";
-import { slugify } from "@/lib/slug";
-import type { Brand } from "@/lib/types";
+import { type Brand, slugify } from "@riflessi/shared";
 
 const inputCls =
   "rounded-xl border border-border bg-card px-4 py-3 text-base text-fg outline-none focus:border-fg/40";

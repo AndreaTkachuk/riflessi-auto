@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/api/**"
+      - "packages/**"
       - "pnpm-lock.yaml"
       - ".github/workflows/deploy-api.yml"
   workflow_dispatch:

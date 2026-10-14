@@ -1,4 +1,7 @@
-export const BODY_TYPE_LABELS = {
+import type { BodyType, ModelBadge } from "@riflessi/shared";
+
+// Record<Enum, string>: a new enum value without an Italian label is a compile error.
+export const BODY_TYPE_LABELS: Record<BodyType, string> = {
   HATCHBACK: "Hatchback",
   SEDAN: "Berlina",
   WAGON: "Station wagon",
@@ -8,17 +11,13 @@ export const BODY_TYPE_LABELS = {
   MPV: "Monovolume",
   PICKUP: "Pick-up",
   VAN: "Furgone",
-} as const;
+};
 
-export type BodyType = keyof typeof BODY_TYPE_LABELS;
-
-export const BADGE_LABELS = {
+export const BADGE_LABELS: Record<ModelBadge, string> = {
   NEW_MODEL: "Novità",
   NEW_GENERATION: "Nuova generazione",
   FACELIFT: "Restyling",
-} as const;
-
-export type ModelBadge = keyof typeof BADGE_LABELS;
+};
 
 // "2026-09-15T00:00:00.000Z" → "set 2026"
 export function formatMonthYear(iso: string) {

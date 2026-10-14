@@ -1,6 +1,6 @@
 import { ModelsManager } from "@/components/admin/models-manager";
 import { serverFetch } from "@/lib/server-api";
-import type { Brand, CarModelAdmin } from "@/lib/types";
+import type { Brand, CarModelAdmin } from "@riflessi/shared";
 
 export default async function AdminModelsPage() {
   const [models, brands] = await Promise.all([

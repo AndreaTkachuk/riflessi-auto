@@ -1,5 +1,8 @@
-import type { BodyType, ModelBadge } from "./labels";
+import type { BodyType, ModelBadge } from './enums.js';
 
+// API response shapes as they arrive in JSON: dates are ISO strings.
+
+// GET /api/brands
 export interface Brand {
   id: string;
   name: string;
@@ -9,6 +12,7 @@ export interface Brand {
   _count: { models: number };
 }
 
+// GET /api/admin/models
 export interface CarModelAdmin {
   id: string;
   brandId: string;
@@ -16,7 +20,7 @@ export interface CarModelAdmin {
   slug: string;
   bodyType: BodyType | null;
   description: string | null;
-  launchedAt: string | null; // ISO date string from the API
+  launchedAt: string | null;
   badge: ModelBadge | null;
   brand: { id: string; name: string };
   _count: { versions: number };

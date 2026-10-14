@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm -r --parallel run dev",
-    "dev:web": "pnpm --filter @riflessi/web run dev",
-    "dev:api": "pnpm --filter @riflessi/api run dev"
+    "dev": "pnpm build:shared && pnpm -r --parallel run dev",
+    "dev:web": "pnpm build:shared && pnpm --filter @riflessi/web run dev",
+    "dev:api": "pnpm build:shared && pnpm --filter @riflessi/api run dev",
+    "build:shared": "pnpm --filter @riflessi/shared run build"
   },
   "keywords": [],
   "author": "",
