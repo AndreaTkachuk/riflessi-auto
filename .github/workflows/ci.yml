@@ -48,6 +48,45 @@ jobs:
       - name: Unit tests (api)
         run: pnpm --filter @riflessi/api test
 
+  e2e:
+    name: e2e
+    runs-on: ubuntu-24.04
+    # A throwaway Postgres 17 next to the job, like the local Podman container.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: riflessi_test
+        ports:
+          - 5432:5432
+        # The job starts only when Postgres accepts connections.
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/riflessi_test
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile --filter @riflessi/api...
+
+      - name: Build
+        run: pnpm --filter @riflessi/api build
+
+      # global-setup applies the migrations (prisma migrate deploy) before the tests.
+      - name: E2E tests
+        run: pnpm --filter @riflessi/api test:e2e
+
   web:
     name: web
     runs-on: ubuntu-24.04
