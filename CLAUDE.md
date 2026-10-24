@@ -46,7 +46,7 @@ home page. The project is a portfolio piece today and is designed to be monetize
 | Runtime         | Node **24**                                                     | devcontainer image `node:24`                                                      |
 | Package manager | **pnpm 12.10.1**                                                | pinned via `"packageManager"` in root `package.json` (corepack)                   |
 | Monorepo        | pnpm workspaces                                                 | `apps/*`, `packages/*`                                                            |
-| Frontend        | **Next.js 16.4** (App Router, Turbopack), **React 19.3**        | package `@riflessi/web`                                                           |
+| Frontend        | **Next.js 16.4.2** (App Router, Turbopack), **React 19.3**      | package `@riflessi/web`; ≥16.4.1 required (critical CVEs in ≤16.4.0)              |
 | Styling         | **Tailwind CSS 4 via `@tailwindcss/turbopack`**                 | loader in `next.config.ts` (`turbopack.rules['*.css']`); no PostCSS config. Works — don't change |
 | Theme           | `next-themes` (class strategy, default **dark**)                |                                                                                   |
 | Backend         | **NestJS 12**, **ES modules** (`"type": "module"`)              | package `@riflessi/api`                                                           |
@@ -163,6 +163,7 @@ riflessi-auto/
                 ├── server-api.ts       # serverFetch<T>(path, { auth? })
                 ├── auth.ts             # getCurrentUser() (React cache)
                 ├── labels.ts           # Italian labels for enums, formatMonthYear
+                ├── api-client.ts       # apiRequest() for client components (never throws)
                 └── api-error.ts        # readApiError()
 ```
 
@@ -269,7 +270,10 @@ Server components call the API directly with `process.env.API_URL` via **`server
   (table, search, delete) + `*-form.tsx` (create/edit, one form for both modes). After a mutation:
   `router.refresh()` (no duplicated client state). Forms use React 19 **`useActionState`**.
   Give the form a `key` (id or `'new'`) so switching records remounts it.
-- API errors shown via `readApiError(res)` (handles Nest `message: string | string[]`).
+- **Client components call the API only via `apiRequest(path, { method, body })`** (`lib/api-client.ts`) —
+  never raw `fetch`. It never throws: returns `null` on success or an Italian message to show (API message via
+  `readApiError`, which handles Nest `message: string | string[]`, or a network error when the API is
+  down/restarting — e.g. while `nest --watch` restarts). Forms: `if (error) return error;`.
 - `admin/layout.tsx` redirects non-logged users to `/login?next=/admin` and non ADMIN/EDITOR to `/`.
   This is UX only — **real protection is the NestJS guard.**
 - `/login` uses `safeNext()` to prevent open redirects.
