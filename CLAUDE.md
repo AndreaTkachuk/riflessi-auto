@@ -76,6 +76,8 @@ home page. The project is a portfolio piece today and is designed to be monetize
 - **Vitest needs no SWC**: Vite 8 compiles TS with Oxc, which emits decorator metadata, so Nest DI by type
   works in `Test.createTestingModule`. Unit tests: `*.spec.ts` next to the code (excluded from `nest build`
   and from shared's `tsc`). E2E tests: `apps/api/test/*.e2e-spec.ts`.
+- **Scripts outside `src/` (e.g. `prisma/seed.ts`) run with `tsx`**, not plain `node`: the generated Prisma
+  client imports `./x.js` that are really `.ts` files, which Node's native type stripping can't resolve.
 - Nest 12 CLI generated `ObserveModule` (`@nestjs/observe`) — it was **removed** on purpose. Don't re-add.
 - **`@riflessi/shared` is consumed from `dist/`** — it must be built first. Root `pnpm dev*` scripts and the
   `build` scripts of api/web do it automatically. While `pnpm dev` runs, `tsc --watch` rebuilds shared, but
@@ -195,6 +197,7 @@ pnpm test                   # vitest unit tests (also in packages/shared: pnpm -
 pnpm test:e2e               # e2e against DB riflessi_test (auto-created + migrated; dev DB never touched)
 pnpm prisma migrate dev --name <name>   # new migration (local only)
 pnpm prisma studio
+pnpm prisma db seed         # prisma/seed.ts via tsx: 87 brands, idempotent (upsert by slug)
 echo "SQL;" | pnpm prisma db execute --stdin
 
 # host (Ubuntu), repo root — test the production image
@@ -372,6 +375,9 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
    `serverFetch` with `{ auth }` (no request without cookie), `getCurrentUser` with React `cache()`.
 9. CI workflow (`ci.yml`): lint (warnings = errors), typecheck, unit tests, build for api and web.
    `GET /auth/me` now uses `@CurrentUser()` (no second JWT check / DB query). Branch + PR workflow.
+10. Seed `apps/api/prisma/seed.ts` (`pnpm prisma db seed`): 87 brands of the Italian market with country
+    (null where not verified: Alba, EMC, ICH-X, Tiger). Updates name + country of existing brands by slug,
+    never touches logoUrl/models. Applied to the local DB; to apply on Neon run it with the direct URL.
 
 ### In progress 🚧 — tests & CI (plan agreed with Andrii)
 
