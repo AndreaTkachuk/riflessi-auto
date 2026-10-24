@@ -109,13 +109,16 @@ describe('Brands (e2e)', () => {
       });
     });
 
-    it('PATCH cannot set a required field to null (400)', async () => {
-      const brand = await createBrand({ name: 'Jeep' });
-      await editor
-        .patch(`/api/admin/brands/${brand.id}`)
-        .send({ name: null })
-        .expect(400);
-    });
+    it.each([{ name: null }, { slug: null }])(
+      'PATCH cannot set a required field to null: %o (400)',
+      async (body) => {
+        const brand = await createBrand({ name: 'Jeep' });
+        await editor
+          .patch(`/api/admin/brands/${brand.id}`)
+          .send(body)
+          .expect(400);
+      },
+    );
 
     it('PATCH / DELETE of an unknown id → 404', async () => {
       await editor

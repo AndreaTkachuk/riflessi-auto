@@ -73,6 +73,8 @@ home page. The project is a portfolio piece today and is designed to be monetize
   The app is configured by `setupApp()` (`src/app.setup.ts`), shared with `main.ts` — add global config there.
 - **Update DTOs use `PartialType(CreateDto, { skipNullProperties: false })`**: otherwise `{ name: null }` skips
   validation and Prisma fails with 500. Fields `@IsOptional()` in the create DTO can still be cleared with null.
+- **Optional but NOT nullable fields** (e.g. `slug`: generated if missing, but the column is required) use
+  `@ValidateIf((_, v) => v !== undefined)` instead of `@IsOptional()` — `@IsOptional()` lets `null` through.
 - **Vitest needs no SWC**: Vite 8 compiles TS with Oxc, which emits decorator metadata, so Nest DI by type
   works in `Test.createTestingModule`. Unit tests: `*.spec.ts` next to the code (excluded from `nest build`
   and from shared's `tsc`). E2E tests: `apps/api/test/*.e2e-spec.ts`.
@@ -133,8 +135,10 @@ riflessi-auto/
     │       │   └── decorators/         # public, roles, current-user
     │       └── catalog/
     │           ├── catalog.module.ts
-    │           └── brands/             # brands.service, brands.controller (public),
-    │                                   # admin-brands.controller, dto/
+    │           ├── brands/             # brands.service, brands.controller (public),
+    │           │                       # admin-brands.controller, dto/
+    │           └── models/             # models.service, models.controller (public: novita, by slugs),
+    │                                   # admin-models.controller, dto/
     └── web/                            # @riflessi/web — Next.js
         ├── next.config.ts              # turbopack.root = repo root, @tailwindcss/turbopack loader,
         │                               # rewrites /api/* → API_URL
@@ -149,7 +153,7 @@ riflessi-auto/
             │       ├── layout.tsx      # auth check + sidebar
             │       ├── page.tsx
             │       ├── marche/page.tsx
-            │       └── modelli/page.tsx  # UI ready, waits for models API
+            │       └── modelli/page.tsx
             ├── components/
             │   ├── header/site-header.tsx
             │   ├── theme/              # theme-provider.tsx, theme-toggle.tsx
@@ -378,6 +382,12 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 10. Seed `apps/api/prisma/seed.ts` (`pnpm prisma db seed`): 87 brands of the Italian market with country
     (null where not verified: Alba, EMC, ICH-X, Tiger). Updates name + country of existing brands by slug,
     never touches logoUrl/models. Applied to the local DB; to apply on Neon run it with the direct URL.
+11. Catalog API — **models** (`catalog/models/`): public `GET /api/models/novita` (launched models, newest
+    first, max 6, brand name+slug, `_count.versions`), public `GET /api/brands/:brandSlug/models/:modelSlug`
+    (brand + versions, cheapest first, nulls last; 404 "Modello non trovato"); admin `GET/POST/PATCH/DELETE
+    /api/admin/models` (response = `CarModelAdmin`; unknown brand → 404 "Marca non trovata"; `launchedAt`
+    "YYYY-MM-DD" → Date, null clears; slug unique per brand). 25 e2e tests (55 total).
+    Fixed: `slug: null` in PATCH brands returned 500 → 400.
 
 ### In progress 🚧 — tests & CI (plan agreed with Andrii)
 
@@ -387,16 +397,11 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 3. ✅ E2E API tests with real Postgres (27 tests: app, auth, brands), CI job `e2e` with a service container.
    Found and fixed: `PATCH /admin/brands` with `{ name: null }` returned 500 → now 400.
 4. ✅ `deploy-api.yml` runs only after CI is green (reusable workflow called from `ci.yml`).
-5. Then models API — written together with its e2e tests.
+5. ✅ Models API with e2e tests (see Done 11).
 
 ### NOT done yet ⏳ (next steps, in this order)
 
-1. **Catalog API — models** (`apps/api/src/catalog/models/`):
-   - public `GET /api/models/novita` (models with `launchedAt`, newest first, take 6, include brand + `_count.versions`)
-     — declare before parametric routes;
-   - public `GET /api/brands/:brandSlug/models/:modelSlug` (model + brand + versions);
-   - admin `GET/POST/PATCH/DELETE /api/admin/models` (`brandId` in body; check brand exists → 404 "Marca non trovata";
-     `launchedAt` as date string → `Date`, `null` clears; `@IsEnum(BodyType)`, `@IsEnum(ModelBadge)`).
+1. ~~Catalog API — models~~ ✅
 2. **Web `/admin/modelli`**: code already written (uncommitted): `modelli/page.tsx`, `models-manager.tsx`,
    `model-form.tsx`, "Modelli" enabled in admin menu. Needs the models API, then browser test + commit.
 3. **Versions**: API + `/admin/versioni` (specs, prices). Extract shared form UI (inputs, labels, error alert) here.

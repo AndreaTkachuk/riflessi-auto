@@ -5,6 +5,7 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateBrandDto {
@@ -13,7 +14,8 @@ export class CreateBrandDto {
   @MaxLength(60)
   name!: string;
 
-  @IsOptional()
+  // Optional (generated from name), but not nullable: the column is required.
+  @ValidateIf((_, value) => value !== undefined)
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
     message: 'slug: solo lettere minuscole, numeri e trattini',
   })
