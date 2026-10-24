@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
+import { apiRequest } from "@/lib/api-client";
 
 interface State {
   error: string | null;
@@ -16,19 +17,12 @@ export function LoginForm({ next }: { next: string }) {
       const email = String(formData.get("email") ?? "");
       const password = String(formData.get("password") ?? "");
 
-      const res = await fetch("/api/auth/login", {
+      // 401 → "Credenziali non valide" from the API; network error → "Impossibile contattare…"
+      const error = await apiRequest("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
-
-      if (!res.ok) {
-        const error =
-          res.status === 401
-            ? "Email o password non corretti"
-            : "Qualcosa è andato storto. Riprova.";
-        return { error, email };
-      }
+      if (error) return { error, email };
 
       router.push(next);
       router.refresh();

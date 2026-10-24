@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { readApiError } from "@/lib/api-error";
+import { apiRequest } from "@/lib/api-client";
 import type { Brand } from "@riflessi/shared";
 import { BrandForm } from "./brand-form";
 
@@ -29,13 +29,13 @@ export function BrandsManager({ brands }: { brands: Brand[] }) {
 
     setDeletingId(brand.id);
     setError(null);
-    const res = await fetch(`/api/admin/brands/${brand.id}`, {
+    const error = await apiRequest(`/api/admin/brands/${brand.id}`, {
       method: "DELETE",
     });
     setDeletingId(null);
 
-    if (!res.ok) {
-      setError(await readApiError(res));
+    if (error) {
+      setError(error);
       return;
     }
     if (panel?.mode === "edit" && panel.brand.id === brand.id) setPanel(null);

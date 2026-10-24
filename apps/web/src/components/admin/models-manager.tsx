@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { readApiError } from "@/lib/api-error";
+import { apiRequest } from "@/lib/api-client";
 import { BADGE_LABELS, BODY_TYPE_LABELS, formatMonthYear } from "@/lib/labels";
 import type { Brand, CarModelAdmin } from "@riflessi/shared";
 import { ModelForm } from "./model-form";
@@ -42,13 +42,13 @@ export function ModelsManager({
 
     setDeletingId(model.id);
     setError(null);
-    const res = await fetch(`/api/admin/models/${model.id}`, {
+    const error = await apiRequest(`/api/admin/models/${model.id}`, {
       method: "DELETE",
     });
     setDeletingId(null);
 
-    if (!res.ok) {
-      setError(await readApiError(res));
+    if (error) {
+      setError(error);
       return;
     }
     if (panel?.mode === "edit" && panel.model.id === model.id) setPanel(null);

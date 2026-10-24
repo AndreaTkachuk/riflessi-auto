@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { readApiError } from "@/lib/api-error";
+import { apiRequest } from "@/lib/api-client";
 import { type Brand, slugify } from "@riflessi/shared";
 
 const inputCls =
@@ -37,16 +37,12 @@ export function BrandForm({ brand, onDone, onCancel }: Props) {
         logoUrl: logoUrl || null,
       };
 
-      const res = await fetch(
+      const error = await apiRequest(
         brand ? `/api/admin/brands/${brand.id}` : "/api/admin/brands",
-        {
-          method: brand ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        },
+        { method: brand ? "PATCH" : "POST", body },
       );
 
-      if (!res.ok) return readApiError(res);
+      if (error) return error;
       onDone();
       return null;
     },

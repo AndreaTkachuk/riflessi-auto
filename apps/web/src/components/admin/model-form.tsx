@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { readApiError } from "@/lib/api-error";
+import { apiRequest } from "@/lib/api-client";
 import { BADGE_LABELS, BODY_TYPE_LABELS } from "@/lib/labels";
 import { type Brand, type CarModelAdmin, slugify } from "@riflessi/shared";
 
@@ -44,16 +44,12 @@ export function ModelForm({ model, brands, onDone, onCancel }: Props) {
         description: field("description"),
       };
 
-      const res = await fetch(
+      const error = await apiRequest(
         model ? `/api/admin/models/${model.id}` : "/api/admin/models",
-        {
-          method: model ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        },
+        { method: model ? "PATCH" : "POST", body },
       );
 
-      if (!res.ok) return readApiError(res);
+      if (error) return error;
       onDone();
       return null;
     },
