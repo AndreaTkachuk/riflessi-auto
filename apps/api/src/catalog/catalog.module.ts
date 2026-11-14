@@ -5,6 +5,8 @@ import { BrandsService } from './brands/brands.service.js';
 import { AdminModelsController } from './models/admin-models.controller.js';
 import { ModelsController } from './models/models.controller.js';
 import { ModelsService } from './models/models.service.js';
+import { AdminVersionsController } from './versions/admin-versions.controller.js';
+import { VersionsService } from './versions/versions.service.js';
 
 @Module({
   controllers: [
@@ -12,7 +14,8 @@ import { ModelsService } from './models/models.service.js';
     AdminBrandsController,
     ModelsController,
     AdminModelsController,
+    AdminVersionsController,
   ],
-  providers: [BrandsService, ModelsService],
+  providers: [BrandsService, ModelsService, VersionsService],
 })
 export class CatalogModule {}

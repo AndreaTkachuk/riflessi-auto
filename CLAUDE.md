@@ -392,6 +392,11 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
     /api/admin/models` (response = `CarModelAdmin`; unknown brand → 404 "Marca non trovata"; `launchedAt`
     "YYYY-MM-DD" → Date, null clears; slug unique per brand). 25 e2e tests (55 total).
     Fixed: `slug: null` in PATCH brands returned 500 → 400.
+12. Catalog API — **versions** (`catalog/versions/`): admin `GET/POST/PATCH/DELETE /api/admin/versions`
+    (`?modelId=` filter; response = `CarVersionAdmin`; unknown model → 404 "Modello non trovato";
+    `yearTo >= yearFrom` checked in the service, also on PATCH against stored values; `consumption` number
+    with max 1 decimal in, string out; slug unique per model). Public versions come with the model detail.
+    33 e2e tests (88 total). Web `/admin/modelli` committed.
 
 ### In progress 🚧 — tests & CI (plan agreed with Andrii)
 
@@ -406,9 +411,11 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 ### NOT done yet ⏳ (next steps, in this order)
 
 1. ~~Catalog API — models~~ ✅
-2. **Web `/admin/modelli`**: code already written (uncommitted): `modelli/page.tsx`, `models-manager.tsx`,
-   `model-form.tsx`, "Modelli" enabled in admin menu. Needs the models API, then browser test + commit.
-3. **Versions**: API + `/admin/versioni` (specs, prices). Extract shared form UI (inputs, labels, error alert) here.
+2. ~~Web `/admin/modelli`~~ ✅
+3. **Versions**: ~~API~~ ✅ → web `/admin/versioni` (specs, prices). Extract shared form UI (inputs, labels,
+   error alert) here.
+3b. **Catalog data**: seed with real models/versions for a limited set of popular brands (verify prices/specs),
+   later CSV import in admin. Only novità are entered by hand.
 4. **Media**: Cloudflare R2 (10 GB free), presigned upload URLs from NestJS, browser uploads directly to R2;
    `Photo` model linked to `CarModel`; brand logos too. Don't hotlink manufacturer images.
 5. **Home novità with real data** + `/confronta` (compare up to 3 versions, highlight best values, "only differences").
