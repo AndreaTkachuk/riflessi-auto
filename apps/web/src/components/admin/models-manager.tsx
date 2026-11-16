@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiRequest } from "@/lib/api-client";
 import { BADGE_LABELS, BODY_TYPE_LABELS, formatMonthYear } from "@/lib/labels";
 import type { Brand, CarModelAdmin } from "@riflessi/shared";
 import { ModelForm } from "./model-form";
+import { ErrorAlert } from "./form-ui";
 
 type Panel = { mode: "create" } | { mode: "edit"; model: CarModelAdmin } | null;
 
@@ -78,14 +80,7 @@ export function ModelsManager({
         </p>
       )}
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-500"
-        >
-          {error}
-        </p>
-      )}
+      <ErrorAlert message={error} />
 
       <div className="flex flex-wrap items-start gap-6">
         <section className="min-w-0 flex-1 basis-[32rem] overflow-hidden rounded-3xl border border-border bg-card">
@@ -161,7 +156,12 @@ export function ModelsManager({
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
-                      {m._count.versions}
+                      <Link
+                        href={`/admin/versioni?modelId=${m.id}`}
+                        className="underline decoration-border underline-offset-4 hover:decoration-fg"
+                      >
+                        {m._count.versions}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-right">
                       <button

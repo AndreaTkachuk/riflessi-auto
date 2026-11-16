@@ -92,7 +92,7 @@ describe('Versions (e2e)', () => {
         powerHp: 280,
         consumption: 7.4,
         co2Gkm: 168,
-        emissionClass: 'EURO_6D',
+        emissionClass: 'EURO_6E_BIS',
         doors: 4,
         seats: 5,
         priceNewEur: 62500,
@@ -111,7 +111,9 @@ describe('Versions (e2e)', () => {
         powerHp: 280,
         consumption: '7.4',
         co2Gkm: 168,
-        emissionClass: 'EURO_6D',
+        batteryKwh: null,
+        rangeKm: null,
+        emissionClass: 'EURO_6E_BIS',
         doors: 4,
         seats: 5,
         priceNewEur: 62500,
@@ -133,6 +135,8 @@ describe('Versions (e2e)', () => {
         powerHp: null,
         consumption: null,
         co2Gkm: null,
+        batteryKwh: null,
+        rangeKm: null,
         emissionClass: null,
         doors: null,
         seats: null,
@@ -165,6 +169,8 @@ describe('Versions (e2e)', () => {
       ['non-integer power', { powerKw: 150.5 }],
       ['negative price', { priceNewEur: -1 }],
       ['consumption with 2 decimals', { consumption: 5.45 }],
+      ['battery with 2 decimals', { batteryKwh: 44.25 }],
+      ['zero range', { rangeKm: 0 }],
       ['null slug', { slug: null }],
       ['unknown field', { color: 'rosso' }],
     ])('rejects %s (400)', async (_case, body) => {
@@ -172,6 +178,29 @@ describe('Versions (e2e)', () => {
         .post('/api/admin/versions')
         .send({ ...base(), ...body })
         .expect(400);
+    });
+
+    it('electric version: battery as a Decimal string, range, no engine', async () => {
+      const version = await createVersion({
+        name: 'Elettrica 113 CV',
+        fuelType: 'ELECTRIC',
+        engineCc: null,
+        batteryKwh: 44,
+        rangeKm: 320,
+        consumption: 16.9,
+      });
+      expect(version).toMatchObject({
+        fuelType: 'ELECTRIC',
+        engineCc: null,
+        batteryKwh: '44',
+        rangeKm: 320,
+        consumption: '16.9',
+      });
+    });
+
+    it('accepts MILD_HYBRID', async () => {
+      const version = await createVersion({ fuelType: 'MILD_HYBRID' });
+      expect(version.fuelType).toBe('MILD_HYBRID');
     });
 
     it('yearTo before yearFrom → 400', async () => {

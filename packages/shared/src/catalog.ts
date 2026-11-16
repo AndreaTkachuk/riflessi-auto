@@ -4,7 +4,7 @@ import type {
   FuelType,
   ModelBadge,
   Transmission,
-} from "./enums.js";
+} from './enums.js';
 
 // API response shapes as they arrive in JSON: dates are ISO strings, Decimal is a string.
 
@@ -47,6 +47,8 @@ export interface CarVersionAdmin {
   powerHp: number | null;
   consumption: string | null; // Decimal(4,1), e.g. "5.4"
   co2Gkm: number | null;
+  batteryKwh: string | null; // Decimal(4,1), e.g. "44" or "52.5"
+  rangeKm: number | null;
   emissionClass: EmissionClass | null;
   doors: number | null;
   seats: number | null;

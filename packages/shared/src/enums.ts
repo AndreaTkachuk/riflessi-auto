@@ -34,7 +34,8 @@ export const FuelType = {
   DIESEL: 'DIESEL',
   LPG: 'LPG',
   CNG: 'CNG',
-  HYBRID: 'HYBRID',
+  MILD_HYBRID: 'MILD_HYBRID',
+  HYBRID: 'HYBRID', // full hybrid
   PLUG_IN_HYBRID: 'PLUG_IN_HYBRID',
   ELECTRIC: 'ELECTRIC',
 } as const;
@@ -51,6 +52,8 @@ export const EmissionClass = {
   EURO_5: 'EURO_5',
   EURO_6: 'EURO_6',
   EURO_6D: 'EURO_6D',
+  EURO_6E: 'EURO_6E',
+  EURO_6E_BIS: 'EURO_6E_BIS',
   EURO_7: 'EURO_7',
 } as const;
 export type EmissionClass = (typeof EmissionClass)[keyof typeof EmissionClass];

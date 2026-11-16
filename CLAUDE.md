@@ -86,6 +86,9 @@ home page. The project is a portfolio piece today and is designed to be monetize
   `nest start --watch` does **not** restart on shared changes — restart `dev:api` after editing shared.
 - Don't overwrite generator config files wholesale (e.g. `next.config.ts`) without reading them first.
 - Two separate databases: **local** (Podman) and **prod** (Neon). Data does not sync.
+- **Prettier config (`.prettierrc`, single quotes) exists only in `apps/api`.** `packages/shared` uses single
+  quotes too: format it with `pnpm exec prettier --config .prettierrc` from `apps/api`. `apps/web` has no
+  prettier (double quotes, ESLint only).
 
 ---
 
@@ -305,10 +308,13 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 - `CarModel` (brandId, name, slug unique per brand, bodyType?, description?, **launchedAt?**, **badge?**
   `NEW_MODEL|NEW_GENERATION|FACELIFT`) → `CarVersion[]`. `onDelete: Restrict` from Brand.
 - `CarVersion` (modelId, name, slug unique per model, yearFrom, yearTo?, fuelType, transmission,
-  engineCc?, powerKw?, powerHp?, consumption Decimal(4,1)?, co2Gkm?, emissionClass?, doors?, seats?,
-  priceNewEur Int?). `onDelete: Restrict` from CarModel.
+  engineCc?, powerKw?, powerHp?, consumption Decimal(4,1)?, co2Gkm?, batteryKwh Decimal(4,1)?, rangeKm?,
+  emissionClass?, doors?, seats?, priceNewEur Int?).
+- `FuelType`: `MILD_HYBRID` and `HYBRID` (= full hybrid) are separate. `EmissionClass` includes `EURO_6E`,
+  `EURO_6E_BIS` (new cars from 2026); added with `ALTER TYPE ADD VALUE`, so DB enum order ≠ schema order —
+  never sort by these columns in SQL. `onDelete: Restrict` from CarModel.
 - Enums in English (`LPG`, `CNG`...), shown in Italian in the UI ("GPL", "Metano").
-- Migrations so far: `init`, `catalog_novita` (verify with `ls apps/api/prisma/migrations`).
+- Migrations so far: `init`, `catalog_novita`, `versions_ev_fields` (verify with `ls apps/api/prisma/migrations`).
 
 ---
 
@@ -397,6 +403,9 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
     `yearTo >= yearFrom` checked in the service, also on PATCH against stored values; `consumption` number
     with max 1 decimal in, string out; slug unique per model). Public versions come with the model detail.
     33 e2e tests (88 total). Web `/admin/modelli` committed.
+13. Web `/admin/versioni` (filters brand → model, `?modelId=` from the models table, form with all specs).
+    Shared admin form UI in `components/admin/form-ui.tsx` (`inputCls`, `labelCls`, `<ErrorAlert>`).
+    Migration `versions_ev_fields`: `MILD_HYBRID`, `EURO_6E`, `EURO_6E_BIS`, `batteryKwh`, `rangeKm` (92 e2e).
 
 ### In progress 🚧 — tests & CI (plan agreed with Andrii)
 
@@ -412,10 +421,10 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 
 1. ~~Catalog API — models~~ ✅
 2. ~~Web `/admin/modelli`~~ ✅
-3. **Versions**: ~~API~~ ✅ → web `/admin/versioni` (specs, prices). Extract shared form UI (inputs, labels,
-   error alert) here.
-3b. **Catalog data**: seed with real models/versions for a limited set of popular brands (verify prices/specs),
-   later CSV import in admin. Only novità are entered by hand.
+3. ~~Versions: API + web `/admin/versioni`~~ ✅
+3b. **Catalog data (NEXT)**: extend `prisma/seed.ts` to load `prisma/mock-data/catalog-seed-versions.json`
+   (brands → models → versions, upsert by slug; ignore `_`-prefixed keys, map `_hybridKind` MILD_* →
+   `MILD_HYBRID`, `_batteryKwh`/`_rangeKm` → columns). Verify prices/specs before prod. Later CSV import in admin.
 4. **Media**: Cloudflare R2 (10 GB free), presigned upload URLs from NestJS, browser uploads directly to R2;
    `Photo` model linked to `CarModel`; brand logos too. Don't hotlink manufacturer images.
 5. **Home novità with real data** + `/confronta` (compare up to 3 versions, highlight best values, "only differences").

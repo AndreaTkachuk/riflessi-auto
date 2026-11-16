@@ -84,6 +84,20 @@ export class CreateVersionDto {
   @Max(1000)
   co2Gkm?: number | null;
 
+  // Usable battery capacity in kWh (EV, plug-in); column is Decimal(4,1).
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 1, allowNaN: false, allowInfinity: false })
+  @Min(1)
+  @Max(999.9)
+  batteryKwh?: number | null;
+
+  // WLTP electric range in km.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(2000)
+  rangeKm?: number | null;
+
   @IsOptional()
   @IsEnum(EmissionClass)
   emissionClass?: EmissionClass | null;

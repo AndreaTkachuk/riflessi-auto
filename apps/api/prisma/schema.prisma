@@ -61,7 +61,8 @@ enum FuelType {
   DIESEL
   LPG
   CNG
-  HYBRID
+  MILD_HYBRID
+  HYBRID // full hybrid
   PLUG_IN_HYBRID
   ELECTRIC
 }
@@ -88,6 +89,8 @@ enum EmissionClass {
   EURO_5
   EURO_6
   EURO_6D
+  EURO_6E
+  EURO_6E_BIS
   EURO_7
 }
 
@@ -117,6 +120,8 @@ model CarVersion {
   powerHp       Int?
   consumption   Decimal?       @db.Decimal(4, 1) // l/100km (o kWh/100km per elettriche)
   co2Gkm        Int?
+  batteryKwh    Decimal?       @db.Decimal(4, 1) // usable battery capacity (EV, plug-in)
+  rangeKm       Int? // WLTP electric range
   emissionClass EmissionClass?
   doors         Int?
   seats         Int?

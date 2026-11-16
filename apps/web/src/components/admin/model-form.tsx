@@ -4,10 +4,7 @@ import { useActionState, useState } from "react";
 import { apiRequest } from "@/lib/api-client";
 import { BADGE_LABELS, BODY_TYPE_LABELS } from "@/lib/labels";
 import { type Brand, type CarModelAdmin, slugify } from "@riflessi/shared";
-
-const inputCls =
-  "rounded-xl border border-border bg-card px-4 py-3 text-base text-fg outline-none focus:border-fg/40";
-const labelCls = "flex flex-col gap-2 text-sm font-semibold text-muted";
+import { ErrorAlert, inputCls, labelCls } from "./form-ui";
 
 interface Props {
   model?: CarModelAdmin;
@@ -177,14 +174,7 @@ export function ModelForm({ model, brands, onDone, onCancel }: Props) {
         />
       </label>
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-500"
-        >
-          {error}
-        </p>
-      )}
+      <ErrorAlert message={error} />
 
       <div className="flex justify-end gap-2.5 pt-2">
         <button

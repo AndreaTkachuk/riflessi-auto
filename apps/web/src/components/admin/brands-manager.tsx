@@ -5,6 +5,7 @@ import { useState } from "react";
 import { apiRequest } from "@/lib/api-client";
 import type { Brand } from "@riflessi/shared";
 import { BrandForm } from "./brand-form";
+import { ErrorAlert } from "./form-ui";
 
 type Panel = { mode: "create" } | { mode: "edit"; brand: Brand } | null;
 
@@ -58,14 +59,7 @@ export function BrandsManager({ brands }: { brands: Brand[] }) {
         </button>
       </div>
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-500"
-        >
-          {error}
-        </p>
-      )}
+      <ErrorAlert message={error} />
 
       <div className="flex flex-wrap items-start gap-6">
         <section className="min-w-0 flex-1 basis-[28rem] overflow-hidden rounded-3xl border border-border bg-card">
