@@ -1,0 +1,17 @@
+-- AlterEnum
+-- This migration adds more than one value to an enum.
+-- With PostgreSQL versions 11 and earlier, this is not possible
+-- in a single migration. This can be worked around by creating
+-- multiple migrations, each migration adding only one value to
+-- the enum.
+
+
+ALTER TYPE "EmissionClass" ADD VALUE 'EURO_6E';
+ALTER TYPE "EmissionClass" ADD VALUE 'EURO_6E_BIS';
+
+-- AlterEnum
+ALTER TYPE "FuelType" ADD VALUE 'MILD_HYBRID';
+
+-- AlterTable
+ALTER TABLE "CarVersion" ADD COLUMN     "batteryKwh" DECIMAL(4,1),
+ADD COLUMN     "rangeKm" INTEGER;

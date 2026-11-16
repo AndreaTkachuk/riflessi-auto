@@ -46,7 +46,7 @@ home page. The project is a portfolio piece today and is designed to be monetize
 | Runtime         | Node **24**                                                     | devcontainer image `node:24`                                                      |
 | Package manager | **pnpm 12.10.1**                                                | pinned via `"packageManager"` in root `package.json` (corepack)                   |
 | Monorepo        | pnpm workspaces                                                 | `apps/*`, `packages/*`                                                            |
-| Frontend        | **Next.js 16.4** (App Router, Turbopack), **React 19.3**        | package `@riflessi/web`                                                           |
+| Frontend        | **Next.js 16.4.2** (App Router, Turbopack), **React 19.3**      | package `@riflessi/web`; ≥16.4.1 required (critical CVEs in ≤16.4.0)              |
 | Styling         | **Tailwind CSS 4 via `@tailwindcss/turbopack`**                 | loader in `next.config.ts` (`turbopack.rules['*.css']`); no PostCSS config. Works — don't change |
 | Theme           | `next-themes` (class strategy, default **dark**)                |                                                                                   |
 | Backend         | **NestJS 12**, **ES modules** (`"type": "module"`)              | package `@riflessi/api`                                                           |
@@ -86,6 +86,9 @@ home page. The project is a portfolio piece today and is designed to be monetize
   `nest start --watch` does **not** restart on shared changes — restart `dev:api` after editing shared.
 - Don't overwrite generator config files wholesale (e.g. `next.config.ts`) without reading them first.
 - Two separate databases: **local** (Podman) and **prod** (Neon). Data does not sync.
+- **Prettier config (`.prettierrc`, single quotes) exists only in `apps/api`.** `packages/shared` uses single
+  quotes too: format it with `pnpm exec prettier --config .prettierrc` from `apps/api`. `apps/web` has no
+  prettier (double quotes, ESLint only).
 
 ---
 
@@ -163,6 +166,7 @@ riflessi-auto/
                 ├── server-api.ts       # serverFetch<T>(path, { auth? })
                 ├── auth.ts             # getCurrentUser() (React cache)
                 ├── labels.ts           # Italian labels for enums, formatMonthYear
+                ├── api-client.ts       # apiRequest() for client components (never throws)
                 └── api-error.ts        # readApiError()
 ```
 
@@ -269,7 +273,10 @@ Server components call the API directly with `process.env.API_URL` via **`server
   (table, search, delete) + `*-form.tsx` (create/edit, one form for both modes). After a mutation:
   `router.refresh()` (no duplicated client state). Forms use React 19 **`useActionState`**.
   Give the form a `key` (id or `'new'`) so switching records remounts it.
-- API errors shown via `readApiError(res)` (handles Nest `message: string | string[]`).
+- **Client components call the API only via `apiRequest(path, { method, body })`** (`lib/api-client.ts`) —
+  never raw `fetch`. It never throws: returns `null` on success or an Italian message to show (API message via
+  `readApiError`, which handles Nest `message: string | string[]`, or a network error when the API is
+  down/restarting — e.g. while `nest --watch` restarts). Forms: `if (error) return error;`.
 - `admin/layout.tsx` redirects non-logged users to `/login?next=/admin` and non ADMIN/EDITOR to `/`.
   This is UX only — **real protection is the NestJS guard.**
 - `/login` uses `safeNext()` to prevent open redirects.
@@ -301,10 +308,13 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 - `CarModel` (brandId, name, slug unique per brand, bodyType?, description?, **launchedAt?**, **badge?**
   `NEW_MODEL|NEW_GENERATION|FACELIFT`) → `CarVersion[]`. `onDelete: Restrict` from Brand.
 - `CarVersion` (modelId, name, slug unique per model, yearFrom, yearTo?, fuelType, transmission,
-  engineCc?, powerKw?, powerHp?, consumption Decimal(4,1)?, co2Gkm?, emissionClass?, doors?, seats?,
-  priceNewEur Int?). `onDelete: Restrict` from CarModel.
+  engineCc?, powerKw?, powerHp?, consumption Decimal(4,1)?, co2Gkm?, batteryKwh Decimal(4,1)?, rangeKm?,
+  emissionClass?, doors?, seats?, priceNewEur Int?).
+- `FuelType`: `MILD_HYBRID` and `HYBRID` (= full hybrid) are separate. `EmissionClass` includes `EURO_6E`,
+  `EURO_6E_BIS` (new cars from 2026); added with `ALTER TYPE ADD VALUE`, so DB enum order ≠ schema order —
+  never sort by these columns in SQL. `onDelete: Restrict` from CarModel.
 - Enums in English (`LPG`, `CNG`...), shown in Italian in the UI ("GPL", "Metano").
-- Migrations so far: `init`, `catalog_novita` (verify with `ls apps/api/prisma/migrations`).
+- Migrations so far: `init`, `catalog_novita`, `versions_ev_fields` (verify with `ls apps/api/prisma/migrations`).
 
 ---
 
@@ -388,6 +398,14 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
     /api/admin/models` (response = `CarModelAdmin`; unknown brand → 404 "Marca non trovata"; `launchedAt`
     "YYYY-MM-DD" → Date, null clears; slug unique per brand). 25 e2e tests (55 total).
     Fixed: `slug: null` in PATCH brands returned 500 → 400.
+12. Catalog API — **versions** (`catalog/versions/`): admin `GET/POST/PATCH/DELETE /api/admin/versions`
+    (`?modelId=` filter; response = `CarVersionAdmin`; unknown model → 404 "Modello non trovato";
+    `yearTo >= yearFrom` checked in the service, also on PATCH against stored values; `consumption` number
+    with max 1 decimal in, string out; slug unique per model). Public versions come with the model detail.
+    33 e2e tests (88 total). Web `/admin/modelli` committed.
+13. Web `/admin/versioni` (filters brand → model, `?modelId=` from the models table, form with all specs).
+    Shared admin form UI in `components/admin/form-ui.tsx` (`inputCls`, `labelCls`, `<ErrorAlert>`).
+    Migration `versions_ev_fields`: `MILD_HYBRID`, `EURO_6E`, `EURO_6E_BIS`, `batteryKwh`, `rangeKm` (92 e2e).
 
 ### In progress 🚧 — tests & CI (plan agreed with Andrii)
 
@@ -402,9 +420,11 @@ live in a claude.ai design canvas artifact; variant **"D · Aura"** is the appro
 ### NOT done yet ⏳ (next steps, in this order)
 
 1. ~~Catalog API — models~~ ✅
-2. **Web `/admin/modelli`**: code already written (uncommitted): `modelli/page.tsx`, `models-manager.tsx`,
-   `model-form.tsx`, "Modelli" enabled in admin menu. Needs the models API, then browser test + commit.
-3. **Versions**: API + `/admin/versioni` (specs, prices). Extract shared form UI (inputs, labels, error alert) here.
+2. ~~Web `/admin/modelli`~~ ✅
+3. ~~Versions: API + web `/admin/versioni`~~ ✅
+3b. **Catalog data (NEXT)**: extend `prisma/seed.ts` to load `prisma/mock-data/catalog-seed-versions.json`
+   (brands → models → versions, upsert by slug; ignore `_`-prefixed keys, map `_hybridKind` MILD_* →
+   `MILD_HYBRID`, `_batteryKwh`/`_rangeKm` → columns). Verify prices/specs before prod. Later CSV import in admin.
 4. **Media**: Cloudflare R2 (10 GB free), presigned upload URLs from NestJS, browser uploads directly to R2;
    `Photo` model linked to `CarModel`; brand logos too. Don't hotlink manufacturer images.
 5. **Home novità with real data** + `/confronta` (compare up to 3 versions, highlight best values, "only differences").

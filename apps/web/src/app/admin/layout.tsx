@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 const MENU = [
   { href: "/admin/marche", label: "Marche", ready: true },
   { href: "/admin/modelli", label: "Modelli", ready: true },
-  { href: "/admin/versioni", label: "Versioni", ready: false },
+  { href: "/admin/versioni", label: "Versioni", ready: true },
 ];
 
 export default async function AdminLayout({
